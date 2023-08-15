@@ -33,13 +33,14 @@ else:
 
 
 
-gaffer_latest = [ x.strip() for x in os.popen( f'make -C {CD}/../ list' ).readlines() if x[0].isdigit() ][-2:]
+gaffer_latest = [ x.strip() for x in os.popen( f'make -C {CD}/../ list' ).readlines() if x[0].isdigit() ][-3:]
 for INSTALL_PREFIX in _INSTALL_PREFIX:
     # detect if we have a new version of Gaffer that is not already installed
     if args.m:
         if '@' in INSTALL_PREFIX:
-            gaffer_versions = gaffer_latest
-            gaffer_missing = gaffer_latest
+            gaffer_versions = [ os.path.basename(os.path.dirname(x)) for x in os.popen( f'ssh {INSTALL_PREFIX.split(":")[0]} "ls -1 {INSTALL_PREFIX.split(":")[1]}/gaffer/*/*"' ).readlines() ]
+            gaffer_versions = list(set([ x for x in gaffer_versions if x.strip() ]))
+            gaffer_missing = [ x for x in gaffer_latest if x not in gaffer_versions ]
         else:
             gaffer_versions = [ os.path.basename(os.path.dirname(x)) for x in glob(f"{INSTALL_PREFIX}/gaffer/*/*") ]
             gaffer_versions = list(set(gaffer_versions))
@@ -56,10 +57,16 @@ for INSTALL_PREFIX in _INSTALL_PREFIX:
             system( f'make -C {CD}/../ install GAFFER_VERSION={GAFFER_VERSION}' )
 
         # install all gaffer found in the ../build/dependencies folder
-        system( f'sudo mkdir -p {INSTALL_PREFIX}/gaffer' )
+        if '@' in INSTALL_PREFIX:
+            system( f'ssh {INSTALL_PREFIX.split(":")[0]} mkdir -p {INSTALL_PREFIX.split(":")[1]}/gaffer' )
+        else:
+            system( f'sudo mkdir -p {INSTALL_PREFIX}/gaffer' )
         system( f'sudo rsync -avpP --delete --delete-excluded {CD}/../build/dependencies/{GAFFER_VERSION}/ {INSTALL_PREFIX}/gaffer/{GAFFER_VERSION}/' )
 
         # install all gaffer_cortex found in the ../install folder
-        system( f'sudo mkdir -p {INSTALL_PREFIX}/gaffer_cortex' )
+        if '@' in INSTALL_PREFIX:
+            system( f'ssh {INSTALL_PREFIX.split(":")[0]} mkdir -p {INSTALL_PREFIX.split(":")[1]}/gaffer_cortex' )
+        else:
+            system( f'sudo mkdir -p {INSTALL_PREFIX}/gaffer_cortex' )
         system( f'sudo rsync -avpP --delete --delete-excluded {CD}/../install/{GAFFER_VERSION}/ {INSTALL_PREFIX}/gaffer_cortex/{GAFFER_VERSION}/' )
 
