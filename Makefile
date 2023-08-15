@@ -126,11 +126,13 @@ test: install/$(GAFFER_VERSION)/python/GafferCortex/_GafferCortex.so
 	export HOME=/tmp/home
 	export GAFFER_EXTENSION_PATHS=$(ROOT_DIR)/install/$(GAFFER_VERSION)
 	export PATH=$(ROOT_DIR)/build/dependencies/$(GAFFER_VERSION)/bin/:$(PATH)
-	Xvfb :99 -screen 0 1280x1024x24 & metacity --display :99.0 & export DISPLAY=:99
+	Xvfb :99 -screen 0 1280x1024x24 & export DISPLAY=:99
 	cp -rfuv ./python/GafferCortexTest ./build/dependencies/$(GAFFER_VERSION)/python/ && \
 	gaffer test GafferCortexTest && \
 	gaffer test GafferCortexUITest && \
 	rm -rf /tmp/home
+	rm -rf ./build/dependencies/$(GAFFER_VERSION)/python/GafferCortexTest
+	pkill -fc -9 Xvfb..99
 
 clean:
 	rm -rf install
