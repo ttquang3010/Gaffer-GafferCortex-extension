@@ -103,6 +103,8 @@ install/$(GAFFER_VERSION)/lib/libGafferCortex.so: build/dependencies/$(GAFFER_VE
 		-I./build/dependencies/$(GAFFER_VERSION)/include/ \
 		-I./build/dependencies/$(GAFFER_VERSION)/include/Imath \
 		-L./build/dependencies/$(GAFFER_VERSION)/lib/ \
+		-lGafferBindings \
+		-lGafferDispatch \
 		$(GAFFER_CORTEX_SRC) -o $@ && \
 	mkdir -p install/$(GAFFER_VERSION)/include/ && \
 	cp -rfuv include/* install/$(GAFFER_VERSION)/include/
