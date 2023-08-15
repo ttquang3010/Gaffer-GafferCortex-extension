@@ -6,7 +6,7 @@ To build you just need to have `curl`, `make` and `docker` installed.
 Just type `make` and a little help will show up. 
 
 The Makefile retrives the Gaffer binary directly from GafferHQ, and builds
-GafferCortex using the same docker container used by GafferHQ. 
+GafferCortex using the same docker container used by gaffers github action. 
 
 This guarantees the .so files will be compatible.
 
