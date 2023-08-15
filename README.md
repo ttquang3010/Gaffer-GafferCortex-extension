@@ -2,7 +2,8 @@
 Since GafferCortex is being deprecated in GafferHQ, 
 this repo aims to maintain it as an extension for Gaffer.
 
-To build, just type `make` and a little help will show up. 
+To build you just need to have `curl`, `make` and `docker` installed. 
+Just type `make` and a little help will show up. 
 
 The Makefile retrives the Gaffer binary directly from GafferHQ, and builds
 GafferCortex using the same docker container used by GafferHQ. 
