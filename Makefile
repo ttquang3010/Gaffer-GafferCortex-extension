@@ -2,16 +2,18 @@
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
-# retrieve the current container image name used by GafferHQ github action to build Gaffer releases
-DOCKER_IMAGE:=$(shell echo $$(curl -L 'https://raw.githubusercontent.com/GafferHQ/gaffer/main/.github/workflows/main.yml' 2>/dev/null | egrep 'containerImage.*gafferhq' | head -1 | sed 's/containerImage.//'))
-
 # if no custom gaffer version specified, retrieve the latest one
 ifeq "$(GAFFER_VERSION)" ""
 GAFFER_VERSION:=$(shell curl https://github.com/GafferHQ/gaffer/releases 2>/dev/null | grep releases.tag | awk -F'tag/' '{print $$2}' | awk -F'"' '{print $$1}' | sort -V | tail -1)
 endif
 
+# retrieve the container image name used by GafferHQ github action to build Gaffer the release specified by GAFFER_VERSION
+DOCKER_IMAGE:=$(shell echo $$(curl -L 'https://raw.githubusercontent.com/GafferHQ/gaffer/$(GAFFER_VERSION)/.github/workflows/main.yml' 2>/dev/null | egrep 'containerImage.*gafferhq' | head -1 | sed 's/containerImage.//'))
+
+$(info =============================================================================================)
 $(info Using docker image from GafferHQ: $(DOCKER_IMAGE))
 $(info GAFFER_VERSION=$(GAFFER_VERSION))
+$(info =============================================================================================)
 
 GAFFER_CORTEX_SRC:=$(wildcard src/GafferCortex/*.cpp)
 GAFFER_CORTEX_OBJ=$(GAFFER_CORTEX_SRC:.cpp=.o)
@@ -25,14 +27,17 @@ help:
 	@echo "make install [GAFFER_VERSION=<gaffer version]     - build GafferCortex using the same docker container as the official Gaffer binaries."
 	@echo "make run [GAFFER_VERSION=<gaffer version]         - run gaffer GAFFER_VERSION from the downloaded binary, with GafferCortex configured as extension"
 	@echo "make test [GAFFER_VERSION=<gaffer version]        - run GafferCortex unit test"
+	@echo "make list                                         - show all availabel version from github release page"
 	@echo "make clean                                        - cleanup install folder"
 	@echo "make nuke                                         - cleanup everything"
 	@echo ""
-	@echo "    GAFFER_VERSION specifies the Gaffer version to build for. If not set, this makefile will retrieve the latest from Github releases page."
+	@echo "Make parameters:"
+	@echo ""
+	@echo "    GAFFER_VERSION: specifies the Gaffer version to build for. If not set, this makefile will retrieve the latest from Github releases page."
 	@echo ""
 
 
-install: docker_build
+install: docker_build 
 build_all: install/$(GAFFER_VERSION)/lib/libGafferCortex.so install/$(GAFFER_VERSION)/python/GafferCortex/_GafferCortex.so test
 
 # force the use of one shell for all shell lines, instead of one shell per line.
@@ -51,14 +56,21 @@ docker_build:
 		--name gafferCortexBuild \
 		--rm \
 		--privileged=true \
-		-v $(ROOT_DIR)/:$(ROOT_DIR)/ \
+		-v $(ROOT_DIR)/:$(ROOT_DIR)/:shared \
 		$(DOCKER_IMAGE) \
 		/bin/bash -c "\
 			groupadd -g $(GID) $(GROUP)
 			useradd -l -u $(UID) -g $(GID) $(USER) && \
 			cd $(ROOT_DIR)/ && \
-			runuser $(USER) -c 'make GAFFER_VERSION=$(GAFFER_VERSION) build_all -j $(CORES)' \
+			runuser $(USER) -c 'make \
+				GAFFER_VERSION=$(GAFFER_VERSION) \
+				build_all -j $(CORES)\
+			' \
 		"
+
+# list the latest releases from the github release url
+list:
+	@curl https://github.com/GafferHQ/gaffer/releases 2>/dev/null | grep releases.tag | awk -F'tag/' '{print $$2}' | awk -F'"' '{print $$1}' | sort -V
 
 # just update the current GafferCortex source from the main branch on GafferHQ git
 # only used while GafferCortex still exists in the main branch
@@ -81,7 +93,7 @@ build/dependencies/$(GAFFER_VERSION)/.done:
 	touch ./.done
 
 # retrieve the C++ STD used by the GAFFER_VERSION, directly from it's SConstruct on github
-CXXSTD=$(shell curl -L 'https://raw.githubusercontent.com/GafferHQ/gaffer/1.3.1.0/SConstruct' 2>/dev/null | grep CXXSTD -A 2 | grep minimum -A1 | tail -1 | awk -F'"' '{print $$2}')
+CXXSTD=$(shell curl -L 'https://raw.githubusercontent.com/GafferHQ/gaffer/$(GAFFER_VERSION)/SConstruct' 2>/dev/null | grep CXXSTD -A 2 | grep minimum -A1 | tail -1 | awk -F'"' '{print $$2}')
 
 # build GafferCortex using the downloaded GafferHQ binary
 install/$(GAFFER_VERSION)/lib/libGafferCortex.so: build/dependencies/$(GAFFER_VERSION)/.done $(GAFFER_CORTEX_SRC)
@@ -139,3 +151,4 @@ clean:
 
 nuke: clean
 	rm -rf build
+
